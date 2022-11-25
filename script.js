@@ -1,5 +1,5 @@
 const config = require('./config.json');
-const { Sequelize, DataTypes } = require('sequelize');
+const { Sequelize, DataTypes, Op } = require('sequelize');
 const bodyParser = require('body-parser')
 const qs = require('qs');
 const axios = require('axios');
@@ -51,7 +51,10 @@ const users = sequelize.define('users', {
 // 查询所有用户
 users.findAll({
     where: {
-        status: "active"
+        [Op.or]: [
+            { status: "active" },
+            { status: "pwerror" }
+        ]
     }
 })
     .then(people => {
@@ -75,9 +78,13 @@ function getToken(person) {
             if (response.data.resultCode == 0) {
                 submitTemp(response.data.data.token, person);
             }
-            else {
+            else if (response.data.resultCode == -1){
                 addRecord(person.tel, person.infoRaw.StuName, "密码错误");
                 pwerror(person.tel);
+            }
+            else{
+                console.log(person,response)
+                getToken(person)
             }
         })
         .catch(function (error) {
@@ -85,7 +92,7 @@ function getToken(person) {
         });
 
 }
-function submitTemp(token,person) {
+function submitTemp(token, person) {
 
     let randomTemp = Math.round(Math.random() * (367 - 360) + 360) / 10;
 
@@ -143,15 +150,15 @@ function addRecord(tel, name, status) {
             name: name,
             status: status,
         })
-        .catch(err=>console.log(err))
+        .catch(err => console.log(err))
 
 }
 
 function pwerror(tel) {
     users.update({ status: "pwerror" }, {
         where: {
-          tel: tel
+            tel: tel
         }
-      });
+    });
 
 }
