@@ -127,6 +127,115 @@ function UserUpdate(body, res) {
 
 }
 
+//info 服务信息
+async function info(res) {
+
+  userNum = await users.count();
+  recordNum = await records.count();
+
+  res.send({
+    userNum: userNum,
+    recordNum: recordNum
+  });
+
+}
+
+function QueryByName(body, res) {
+  users
+    .findAll({ where: { name: body.name } })
+    .then((data) => {
+      if (data.length == 0) {
+        res.send("0")
+      }
+      else {
+        res.send(data.map((person) => {
+          return {
+            tel: person.tel,
+            name: person.name
+          }
+        })
+        )
+      }
+    })
+}
+
+
+function QueryByTel(body, res) {
+  records.findAll({ where: { tel: body.tel }, order: [['id', 'DESC']] })
+    .then((temp) => {
+      users
+        .findOne({ where: { tel: body.tel } })
+        .then((data) => {
+          if (data) {
+            res.send({
+              tel: data.tel,
+              name: data.name,
+              status: data.status,
+              tempHistory: temp
+            })
+          }
+          else {
+            res.send("0")
+          }
+        })
+        .catch(err => console.log(err))
+    })
+
+}
+
+async function ServiceOpen(body, res) {
+  await users.update({
+    password: body.password,
+    status: 'active'
+  }, {
+    where: {
+      tel: body.tel
+    }
+  });
+  res.send("1");
+}
+
+
+async function ServiceSuspend(body, res) {
+  await users.update({
+    password: body.password,
+    status: 'suspend'
+  }, {
+    where: {
+      tel: body.tel
+    }
+  });
+  res.send("1");
+}
+
+function InfoUpdate(body, res) {
+
+  users
+    .findOne({ attributes: ['info'], where: { tel: body.tel } })
+    .then((data) => {
+      return data.info.stuIndex;
+    })
+    .then((index) => {
+      users.update({
+        password: body.password,
+        status: 'active',
+        info: {
+          stuIndex: index,
+          teacherName: body.teacherName,
+          livePlace: body.livePlace,
+          dormitory: body.dormitory,
+        }
+      }, {
+        where: {
+          tel: body.tel
+        }
+      })
+    })
+    .then(()=>{
+      res.send("1");
+    })
+
+}
 
 apis.get('/verify', (req, res) => {
   getVerify(res)
@@ -140,6 +249,29 @@ apis.post('/UserUpdate', function (req, res) {
   UserUpdate(req.body, res)
 })
 
+apis.post('/info', function (req, res) {
+  info(res)
+})
+
+apis.post('/QueryByTel', function (req, res) {
+  QueryByTel(req.body, res)
+})
+
+apis.post('/QueryByName', function (req, res) {
+  QueryByName(req.body, res)
+})
+
+apis.post('/ServiceOpen', function (req, res) {
+  ServiceOpen(req.body, res)
+})
+
+apis.post('/ServiceSuspend', function (req, res) {
+  ServiceSuspend(req.body, res)
+})
+
+apis.post('/InfoUpdate', function (req, res) {
+  InfoUpdate(req.body, res)
+})
 
 //监听端口
 apis.listen(config.apiPort, () => {

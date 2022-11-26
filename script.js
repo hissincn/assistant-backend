@@ -96,6 +96,7 @@ function submitTemp(token, person) {
 
     let randomTemp = Math.round(Math.random() * (367 - 360) + 360) / 10;
 
+
     axios.request({
         method: 'POST',
         url: 'https://twsb.xinkaoyun.com:8099/temp/report/studentSaveTemp',
@@ -129,7 +130,7 @@ function submitTemp(token, person) {
             status = response.data.msg;
         }
         else if (response.data.state == 'ok') {
-            status = randomTemp;
+            status = randomTemp+'°C';
         }
         addRecord(person.tel, person.infoRaw.StuName, status)
     }).catch(function (error) {
