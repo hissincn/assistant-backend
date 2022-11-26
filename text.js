@@ -1,7 +1,7 @@
 const axios = require('axios');
 
-var tel = "15081045180";
-var password = "qingtai123";	
+var tel = "1508";
+var password = "";	
 
 axios.request({
     method: 'POST',

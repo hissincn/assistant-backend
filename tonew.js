@@ -9,7 +9,8 @@ const sequelize = new Sequelize(config.datebase, config.dbuser, config.dbpasswor
     host: config.dbhost,
     define: {
         freezeTableName: true
-    }
+    },
+    timezone:'+08:00'
 })
 
 
@@ -108,8 +109,8 @@ function UserUpdate(user) {
 
 
 UserUpdate({
-    tel: '13315818686',
-    password: 'tqy123456',
+    tel: '13',
+    password: 't',
     stuIndex:0
 })
 

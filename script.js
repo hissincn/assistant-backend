@@ -12,7 +12,9 @@ const sequelize = new Sequelize(config.datebase, config.dbuser, config.dbpasswor
     host: config.dbhost,
     define: {
         freezeTableName: true
-    }
+    },
+    timezone:'+08:00'
+
 })
 
 //定义records表模型
