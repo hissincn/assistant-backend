@@ -1,8 +1,6 @@
-const config = require('./config.json');
-const { Sequelize, DataTypes, Op } = require('sequelize');
-const bodyParser = require('body-parser')
-const qs = require('qs');
-const axios = require('axios');
+var config = require('./config.json');
+var { Sequelize, DataTypes, Op } = require('sequelize');
+var axios = require('axios');
 
 
 
@@ -13,7 +11,7 @@ const sequelize = new Sequelize(config.datebase, config.dbuser, config.dbpasswor
     define: {
         freezeTableName: true
     },
-    timezone:'+08:00'
+    timezone: '+08:00'
 
 })
 
@@ -61,7 +59,7 @@ users.findAll({
 })
     .then(people => {
         for (let person of people) {
-            getToken(person);
+            setTimeout(() => { getToken(person); }, Math.floor(Math.random() * (10000 - 10)) + 10)
         }
     })
 
@@ -80,12 +78,12 @@ function getToken(person) {
             if (response.data.resultCode == 0) {
                 submitTemp(response.data.data.token, person);
             }
-            else if (response.data.resultCode == -1){
+            else if (response.data.resultCode == -1) {
                 addRecord(person.tel, person.infoRaw.StuName, "密码错误");
                 pwerror(person.tel);
             }
-            else{
-                console.log(person,response)
+            else {
+                console.log(person, response)
                 getToken(person)
             }
         })
@@ -128,13 +126,23 @@ function submitTemp(token, person) {
         }
     }).then(function (response) {
         let status = '';
-        if (response.data.state == 'fail') {
-            status = response.data.msg;
+        if (response.data.msg == '登录信息异常') {
+            setTimeout(() => {
+                submitTemp(token, person)
+            }, 1000);
+            console.log(token, person)
         }
         else if (response.data.state == 'ok') {
-            status = randomTemp+'°C';
+            status = randomTemp + '°C';
+            addRecord(person.tel, person.infoRaw.StuName, status)
         }
-        addRecord(person.tel, person.infoRaw.StuName, status)
+        else {
+            status = response.data.msg;
+            addRecord(person.tel, person.infoRaw.StuName, status)
+        }
+
+
+
     }).catch(function (error) {
         console.error(error);
     });
