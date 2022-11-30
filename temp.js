@@ -14,9 +14,9 @@ apis.use(bodyParser.json())
 apis.use(cors());
 
 //定义数据库配置
-const sequelize = new Sequelize(config.datebase, config.dbuser, config.dbpassword, {
+const sequelize = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
   dialect: 'mysql',
-  host: config.dbhost,
+  host: config.host,
   define: {
     freezeTableName: true
   },
@@ -275,8 +275,8 @@ apis.post('/InfoUpdate', function (req, res) {
 })
 
 //监听端口
-apis.listen(config.apiPort, () => {
-  console.log(`Example app listening on port ${config.apiPort}`)
+apis.listen(config.tempPort, () => {
+  console.log(`Example app listening on port ${config.tempPort}`)
 })
 
 
