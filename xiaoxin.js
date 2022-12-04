@@ -4,15 +4,21 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const cors = require('cors');
 const qs = require('qs');
+<<<<<<< HEAD
 const expressip = require('express-ip');
 const students = require('./students.json');
 
+=======
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
 
 const apis = express();
 apis.use(bodyParser.urlencoded({ extended: false }))
 apis.use(bodyParser.json())
 apis.use(cors());
+<<<<<<< HEAD
 apis.use(expressip().getIpInfoMiddleware);
+=======
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
 
 //定义temp数据库配置
 const temp = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
@@ -63,6 +69,7 @@ const users = xiaoxin.define('users', {
   schoolId: DataTypes.INTEGER(5),
   userRole: DataTypes.INTEGER(3),
   wxNickname: DataTypes.STRING(255),
+<<<<<<< HEAD
   grade: DataTypes.STRING(10),
   class: DataTypes.STRING(10),
   studentId: DataTypes.STRING(10),
@@ -95,12 +102,21 @@ function checkAuth(req, res) {
 
   let body = req.body;
   let ip = req.ipInfo;
+=======
+  status: DataTypes.STRING(64),
+  identity: DataTypes.STRING(64),
+});
+
+//注册
+function login(body, res) {
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
 
   if (body.userMobile) {
     users
       .findOne({ where: { tel: body.userMobile } })
       .then((data) => {
 
+<<<<<<< HEAD
 
         //如果用户不存在,则创建用户
         if (!data) {
@@ -113,6 +129,10 @@ function checkAuth(req, res) {
           let stuClass = student ? student.class : undefined;
           let studentId = student ? student.studentId : undefined;
 
+=======
+        //如果用户不存在,则创建用户
+        if (!data) {
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
           users
             .create({
               tel: body.userMobile,
@@ -124,12 +144,17 @@ function checkAuth(req, res) {
               schoolId: body.schoolId,
               userRole: body.userRole,
               wxNickname: body.wxNickname,
+<<<<<<< HEAD
               grade: stuGrade,
               class: stuClass,
               studentId: studentId,
               status: "unsigned",
               identity: "formal",
               ip: ip
+=======
+              status: "unsigned",
+              identity: "formal"
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
             })
             .then(() => {
               res.send({
@@ -138,6 +163,7 @@ function checkAuth(req, res) {
             })
             .catch(err => { console.log(err) })
         }
+<<<<<<< HEAD
         else {
           //如果用户存在,但是未激活,则返回未激活状态
           if (data.status == "unsigned") {
@@ -197,16 +223,53 @@ function checkAuth(req, res) {
 
         }
         //end
+=======
+
+        //如果用户存在,但是未激活,则返回未激活状态
+        else if (data.status == "unsigned") {
+          users.update({
+            password: body.password,
+            token: body.token,
+          }, {
+            where: {
+              tel: body.userMobile
+            }
+          })
+          res.send({
+            status: "unsigned"
+          })
+        }
+
+        //如果用户存在,则更新用户信息
+        else if (data.status == "active") {
+          users.update({
+            password: body.password,
+            token: body.token,
+          }, {
+            where: {
+              tel: body.userMobile
+            }
+          })
+          res.send({
+            status: "active"
+          })
+        }
+
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
       })
   }
 }
 
 //验证
+<<<<<<< HEAD
 function updateAuth(req, res) {
 
   let body = req.body;
   let ip = req.ipInfo;
 
+=======
+function toVerify(body, res) {
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
   verify
     .findOne({ attributes: ['code'], where: { date: Date.now() } })
     .then((data) => {
@@ -225,6 +288,7 @@ function updateAuth(req, res) {
             //验证失败
             res.send('0')
           })
+<<<<<<< HEAD
           .catch(err => console.log(err))
       }
       else {
@@ -234,6 +298,15 @@ function updateAuth(req, res) {
           users.update({
             status: "active",
             ip: ip
+=======
+      }
+      else {
+
+        if (data.code == body.code) {
+          //验证成功,更新用户状态
+          users.update({
+            status: "active"
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
           }, {
             where: {
               tel: body.tel
@@ -242,7 +315,10 @@ function updateAuth(req, res) {
             .then(() => {
               res.send('1')
             })
+<<<<<<< HEAD
             .catch(err => console.log(err))
+=======
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
         }
         else {
           //验证失败
@@ -251,6 +327,7 @@ function updateAuth(req, res) {
 
       }
     })
+<<<<<<< HEAD
     .catch(err => console.log(err))
 }
 
@@ -323,6 +400,8 @@ function remainTimes(req, res) {
     })
     .catch(err => { console.log(err) })
 
+=======
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
 }
 
 
@@ -330,6 +409,7 @@ function remainTimes(req, res) {
 
 
 apis.post('/login', function (req, res) {
+<<<<<<< HEAD
   checkAuth(req, res)
 })
 
@@ -344,6 +424,15 @@ apis.post('/taskSubmit', function (req, res) {
 apis.post('/remainTimes', function (req, res) {
   remainTimes(req, res)
 })
+=======
+  login(req.body, res)
+})
+
+apis.post('/verify', function (req, res) {
+  toVerify(req.body, res)
+})
+
+>>>>>>> 120a3b94b2846a95b910ad14e5cc789824b2e895
 
 //监听端口
 apis.listen(config.xiaoxinPort, () => {
