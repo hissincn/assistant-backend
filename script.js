@@ -5,7 +5,7 @@ var axios = require('axios');
 
 
 //定义数据库配置
-const sequelize = new Sequelize(config.datebase, config.dbuser, config.dbpassword, {
+const sequelize = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
     dialect: 'mysql',
     host: config.dbhost,
     define: {

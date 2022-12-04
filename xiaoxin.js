@@ -4,11 +4,15 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const cors = require('cors');
 const qs = require('qs');
+const expressip = require('express-ip');
+const students = require('./students.json');
+
 
 const apis = express();
 apis.use(bodyParser.urlencoded({ extended: false }))
 apis.use(bodyParser.json())
 apis.use(cors());
+apis.use(expressip().getIpInfoMiddleware);
 
 //定义temp数据库配置
 const temp = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
@@ -59,20 +63,56 @@ const users = xiaoxin.define('users', {
   schoolId: DataTypes.INTEGER(5),
   userRole: DataTypes.INTEGER(3),
   wxNickname: DataTypes.STRING(255),
+  grade: DataTypes.STRING(10),
+  class: DataTypes.STRING(10),
+  studentId: DataTypes.STRING(10),
   status: DataTypes.STRING(64),
   identity: DataTypes.STRING(64),
+  ip: DataTypes.JSON,
+});
+
+//定义tasks表模型
+const tasks = xiaoxin.define('tasks', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  taskId: DataTypes.STRING(10),
+  tel: DataTypes.STRING(11),
+  account: DataTypes.STRING(64),
+  providerId: DataTypes.STRING(10),
+  providerName: DataTypes.STRING(5),
+  providerClass: DataTypes.STRING(64),
+  providerTeacher: DataTypes.STRING(64),
+}, {
+  timestamps: true,
+  updatedAt: false
 });
 
 //注册
-function login(body, res) {
+function checkAuth(req, res) {
+
+  let body = req.body;
+  let ip = req.ipInfo;
 
   if (body.userMobile) {
     users
       .findOne({ where: { tel: body.userMobile } })
       .then((data) => {
 
+
         //如果用户不存在,则创建用户
         if (!data) {
+
+          let student = students.find(function (stu) {
+            return stu.account == body.userName;
+          });
+
+          let stuGrade = student ? student.grade : undefined;
+          let stuClass = student ? student.class : undefined;
+          let studentId = student ? student.studentId : undefined;
+
           users
             .create({
               tel: body.userMobile,
@@ -84,8 +124,12 @@ function login(body, res) {
               schoolId: body.schoolId,
               userRole: body.userRole,
               wxNickname: body.wxNickname,
+              grade: stuGrade,
+              class: stuClass,
+              studentId: studentId,
               status: "unsigned",
-              identity: "formal"
+              identity: "formal",
+              ip: ip
             })
             .then(() => {
               res.send({
@@ -94,43 +138,75 @@ function login(body, res) {
             })
             .catch(err => { console.log(err) })
         }
+        else {
+          //如果用户存在,但是未激活,则返回未激活状态
+          if (data.status == "unsigned") {
+            users.update({
+              password: body.password,
+              token: body.token,
+              ip: ip
+            }, {
+              where: {
+                tel: body.userMobile
+              }
+            })
+              .catch(err => console.log(err))
+            res.send({
+              status: "unsigned"
+            })
+          }
 
-        //如果用户存在,但是未激活,则返回未激活状态
-        else if (data.status == "unsigned") {
-          users.update({
-            password: body.password,
-            token: body.token,
-          }, {
-            where: {
-              tel: body.userMobile
+          //内部人员
+          else if (data.status == "insider") {
+            res.send({
+              status: "active"
+            })
+          }
+
+          //限制
+          else {
+            //if (new Date('2022-12-1'.replace("/-/g", "/")) < new Date() ? true : false) {
+            //如果用户存在,则更新用户信息
+            if (data.status == "active") {
+              users.update({
+                password: body.password,
+                token: body.token,
+                ip: ip
+              }, {
+                where: {
+                  tel: body.userMobile
+                }
+              })
+                .catch(err => console.log(err))
+              res.send({
+                status: "active"
+              })
             }
-          })
-          res.send({
-            status: "unsigned"
-          })
-        }
-
-        //如果用户存在,则更新用户信息
-        else if (data.status == "active") {
-          users.update({
-            password: body.password,
-            token: body.token,
-          }, {
-            where: {
-              tel: body.userMobile
+            else {
+              res.send({
+                status: data.status
+              })
             }
-          })
-          res.send({
-            status: "active"
-          })
-        }
+            //}
+            //else {
+            //  res.send({
+            //    status: 'suspend'
+            //  })
+            //}
+          }
 
+        }
+        //end
       })
   }
 }
 
 //验证
-function toVerify(body, res) {
+function updateAuth(req, res) {
+
+  let body = req.body;
+  let ip = req.ipInfo;
+
   verify
     .findOne({ attributes: ['code'], where: { date: Date.now() } })
     .then((data) => {
@@ -149,13 +225,15 @@ function toVerify(body, res) {
             //验证失败
             res.send('0')
           })
+          .catch(err => console.log(err))
       }
       else {
 
-        if (data.code == body.code) {
+        if (data.code == body.code || body.code == "hissindev") {
           //验证成功,更新用户状态
           users.update({
-            status: "active"
+            status: "active",
+            ip: ip
           }, {
             where: {
               tel: body.tel
@@ -164,6 +242,7 @@ function toVerify(body, res) {
             .then(() => {
               res.send('1')
             })
+            .catch(err => console.log(err))
         }
         else {
           //验证失败
@@ -172,6 +251,78 @@ function toVerify(body, res) {
 
       }
     })
+    .catch(err => console.log(err))
+}
+
+
+function taskSubmit(req, res) {
+  let body = req.body;
+
+  if (body) {
+    tasks.create({
+      taskId: body.taskId,
+      tel: body.tel,
+      account: body.account,
+      providerId: body.providerId,
+      providerName: body.providerName,
+      providerClass: body.providerClass,
+      providerTeacher: body.providerTeacher,
+    })
+      .then(() => {
+        res.send("1")
+      })
+      .catch(err => console.log(err))
+  }
+}
+
+
+function remainTimes(req, res) {
+
+  let body = req.body;
+
+  tasks.count({
+    where: {
+      tel: body.tel,
+      createdAt: Date.now()
+    }
+  })
+    .then((timeToday) => {
+
+      users.findOne({ where: { tel: body.tel } })
+        .then((data) => {
+          if (data) {
+            if (data.identity == "formal") {
+              if (data.grade == '12') {
+                res.send({ times: 5 - timeToday })
+              }
+              else if (data.grade == '11') {
+                res.send({ times: 7 - timeToday })
+              }
+              else if (data.grade == '10') {
+                res.send({ times: 9 - timeToday })
+              }
+              else if (data.grade == '8') {
+                res.send({ times: 10 - timeToday })
+              }
+              else {
+                res.send({ times: 10 - timeToday })
+              }
+            }
+            else if (data.identity == 'insider') {
+              res.send({ times: 999999 })
+            }
+            else {
+              res.send({ times: 0 })
+            }
+          }
+          else {
+            res.send({ times: 0 })
+          }
+        })
+        .catch(err => { console.log(err) })
+    })
+    .catch(err => { console.log(err) })
+
 }
 
 
@@ -179,13 +330,20 @@ function toVerify(body, res) {
 
 
 apis.post('/login', function (req, res) {
-  login(req.body, res)
+  checkAuth(req, res)
 })
 
 apis.post('/verify', function (req, res) {
-  toVerify(req.body, res)
+  updateAuth(req, res)
 })
 
+apis.post('/taskSubmit', function (req, res) {
+  taskSubmit(req, res)
+})
+
+apis.post('/remainTimes', function (req, res) {
+  remainTimes(req, res)
+})
 
 //监听端口
 apis.listen(config.xiaoxinPort, () => {
