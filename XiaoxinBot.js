@@ -58,9 +58,11 @@ async function sendCode() {
     if (new Date().getHours() > 6 && new Date().getHours() < 24) {
         //白天
         let code = await getVerifyCode();
+
+        /*
         for await (gro of [194790193, 745731575, 756016909]) {
             for await (const anno of bot.getAnnoIter({ group: gro })) {
-                if (anno.content.indexOf("邀请码为") != -1) {
+                if (anno.constent.indexOf("邀请码为") != -1) {
                     console.log(anno);
                     await bot.deleteAnno({ group: gro, fid: anno.fid });
                 }
@@ -72,6 +74,19 @@ async function sendCode() {
                 pinned: true
             })
         }
+        */
+
+        for await (gro of [194790193, 745731575, 756016909]) {
+            await bot.sendMessage({
+                // 群号
+                group: gro,
+                // 是 http server 接口所需的原始格式，若提供则优先使用
+                message: [
+                    { type: 'Plain', text: `${new Date().getMonth() + 1}月${new Date().getDate()}日${new Date().getHours()}时邀请码为：${code},有效期1小时。` },
+                ],
+            });
+        }
+
         axios.request({
             method: 'POST',
             url: 'https://oapi.dingtalk.com/robot/send',
@@ -79,13 +94,16 @@ async function sendCode() {
               access_token: '1ca940bb5fea336c42f13378bdbb008df09abd7d3d73230992126dcc9e5218eb'
             },
             headers: {'content-type': 'application/json'},
-            data: {
-                msgtype: 'markdown',
-                markdown: {
-                    title: '邀请码', 
-                    text: `## ${code} \n #### 是${new Date().getMonth() + 1}月${new Date().getDate()}日${new Date().getHours()}时邀请码，有效期一小时`
-                }
-              }
+            data:{
+                "actionCard": {
+                    "title": "邀请码",
+                    "text": `## ${code} \n #### 是${new Date().getMonth() + 1}月${new Date().getDate()}日${new Date().getHours()}时邀请码，有效期一小时`,
+                    "btnOrientation": "0",
+                    "singleTitle": "立即体验小鑫助手",
+                    "singleURL": "dingtalk://dingtalkclient/page/link?url=https://xiaoxin.paraject.com&pc_slide=false"
+                },
+                "msgtype": "actionCard"
+            }
           }).then(function (response) {
             console.log(response.data);
           }).catch(function (error) {

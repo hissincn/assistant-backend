@@ -20,7 +20,7 @@ const sequelize = new Sequelize(config.tempDatabase, config.dbuser, config.dbpas
   define: {
     freezeTableName: true
   },
-  timezone:'+08:00'
+  timezone: '+08:00'
 })
 
 //定义verify表模型
@@ -86,11 +86,11 @@ function getVerify(res) {
             code: code
           })
           .then((data) => {
-            res.send(data.code)
+            res.send({ code: data.code })
           })
       }
       else {
-        res.send(data.code)
+        res.send({ code: data.code })
       }
     })
 }
@@ -232,7 +232,7 @@ function InfoUpdate(body, res) {
         }
       })
     })
-    .then(()=>{
+    .then(() => {
       res.send("1");
     })
 
