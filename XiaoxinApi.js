@@ -1,5 +1,5 @@
 const config = require('./config.json');
-const { Sequelize, DataTypes } = require('sequelize');
+const { Sequelize, DataTypes, Op } = require('sequelize');
 const express = require('express');
 const bodyParser = require('body-parser')
 const cors = require('cors');
@@ -14,15 +14,6 @@ apis.use(bodyParser.json())
 apis.use(cors());
 apis.use(expressip().getIpInfoMiddleware);
 
-//定义temp数据库配置
-const temp = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
-  dialect: 'mysql',
-  host: config.host,
-  define: {
-    freezeTableName: true
-  },
-  timezone: '+08:00'
-})
 
 //定义xiaoxin数据库配置
 const xiaoxin = new Sequelize(config.xiaoxinDatabase, config.dbuser, config.dbpassword, {
@@ -34,28 +25,13 @@ const xiaoxin = new Sequelize(config.xiaoxinDatabase, config.dbuser, config.dbpa
   timezone: '+08:00'
 })
 
-
-//定义verify表模型
-const verify = temp.define('verify', {
-  date: {
-    type: DataTypes.DATEONLY,
-    defaultValue: DataTypes.NOW,
-    primaryKey: true
-  },
-  code: {
-    type: DataTypes.STRING(6),
-  }
-}, {
-  timestamps: false
-});
-
 //定义users表模型
 const users = xiaoxin.define('users', {
   tel: {
     type: DataTypes.STRING(11),
     primaryKey: true
   },
-  account: DataTypes.STRING(10),
+  account: DataTypes.STRING(50),
   password: DataTypes.STRING(255),
   token: DataTypes.STRING(255),
   name: DataTypes.STRING(10),
@@ -69,6 +45,9 @@ const users = xiaoxin.define('users', {
   status: DataTypes.STRING(64),
   identity: DataTypes.STRING(64),
   ip: DataTypes.JSON,
+  verifyCode: DataTypes.STRING(10),
+  qq: DataTypes.STRING(25),
+  qqNickName: DataTypes.STRING(255),
   updatedAt: DataTypes.DATEONLY
 });
 
@@ -97,10 +76,12 @@ const tasks = xiaoxin.define('tasks', {
   taskId: DataTypes.STRING(10),
   tel: DataTypes.STRING(11),
   account: DataTypes.STRING(64),
+  objective: DataTypes.TEXT,
   providerId: DataTypes.STRING(10),
   providerName: DataTypes.STRING(5),
   providerClass: DataTypes.STRING(64),
   providerTeacher: DataTypes.STRING(64),
+  createdAt: DataTypes.DATEONLY
 }, {
   timestamps: true,
   updatedAt: false
@@ -131,6 +112,10 @@ function checkAuth(req, res) {
           let stuGrade = student ? student.grade : undefined;
           let stuClass = student ? student.class : undefined;
           let studentId = student ? student.studentId : undefined;
+          let code = ''
+          for (let i = 0; i < 8; i++) {
+            code += "ZXCVBNMASDFGHJKLQWERTYUIOP0123456789".charAt(Math.floor(Math.random() * 38));
+          }
 
           users
             .create({
@@ -148,11 +133,13 @@ function checkAuth(req, res) {
               studentId: studentId,
               status: "unsigned",
               identity: "unsigned",
-              ip: ip
+              ip: ip,
+              verifyCode: code,
             })
             .then(() => {
               res.send({
-                status: "unsigned"
+                status: "unsigned",
+                code: code
               });
             })
             .catch(err => { console.log(err) })
@@ -172,12 +159,18 @@ function checkAuth(req, res) {
             })
               .catch(err => console.log(err))
             res.send({
-              status: "unsigned"
+              status: "unsigned",
+              code: data.verifyCode
             })
           }
 
           //内部人员
           else if (data.status == "insider") {
+            res.send({
+              status: "active"
+            })
+          }
+          else if (data.status == "donator") {
             res.send({
               status: "active"
             })
@@ -223,7 +216,7 @@ function checkAuth(req, res) {
 }
 
 //验证
-function updateAuth(req, res) {
+/*function updateAuth(req, res) {
 
   let body = req.body;
   let ip = req.ipInfo;
@@ -274,7 +267,7 @@ function updateAuth(req, res) {
       }
     })
     .catch(err => console.log(err))
-}
+}*/
 
 
 function taskSubmit(req, res) {
@@ -288,6 +281,7 @@ function taskSubmit(req, res) {
       taskId: body.taskId,
       tel: body.tel,
       account: body.account,
+      objective: body.objective,
       providerId: body.providerId,
       providerName: body.providerName,
       providerClass: body.providerClass,
@@ -299,6 +293,18 @@ function taskSubmit(req, res) {
       .catch(err => console.log(err))
   }
 }
+
+
+function isDuringDate(begin, end) {
+  let curDate = new Date();
+  let beginDate = new Date(begin);
+  let endDate = new Date(end);
+  if (curDate >= beginDate && curDate <= endDate) {
+    return true;
+  }
+  return false;
+}
+
 
 
 function remainTimes(req, res) {
@@ -317,10 +323,9 @@ function remainTimes(req, res) {
         .then((data) => {
           if (data) {
             if (data.identity == "formal") {
+              //if (isDuringDate('2022-12-24 19:10', '2022-12-25 18:40')) {}
               if (data.grade == '12') {
-                res.send({
-                  times: 4 - timeToday, identity: data.identity
-                })
+                res.send({ times: 4 - timeToday, identity: data.identity })
               }
               else if (data.grade == '11') {
                 res.send({ times: 6 - timeToday, identity: data.identity })
@@ -337,7 +342,13 @@ function remainTimes(req, res) {
               }
             }
             else if (data.identity == 'insider') {
-              res.send({ times: 999999, identity: data.identity })
+              res.send({ times: 999999 - timeToday, identity: data.identity })
+            }
+            else if (data.identity == 'donator') {
+              res.send({ times: 999 - timeToday, identity: data.identity })
+            }
+            else if (data.identity == 'autonomic') {
+              res.send({ times: 2 - timeToday, identity: data.identity })
             }
             else if (data.identity == 'unsigned') {
               res.send({ times: 0, identity: data.identity })
@@ -361,15 +372,15 @@ function remainTimes(req, res) {
 //获取token和学校id，根据手机号
 function getTokenAndSchoolId(tel) {
   users.findOne({
-      where: {
-          tel: tel
-      }
+    where: {
+      tel: tel
+    }
   }).then(function (result) {
-      if (result) {
-          let token = result.token;
-          let schoolId = result.schoolId;
-          answersImporter(token, schoolId);
-      }
+    if (result) {
+      let token = result.token;
+      let schoolId = result.schoolId;
+      answersImporter(token, schoolId);
+    }
   })
 }
 
@@ -380,20 +391,20 @@ function getTokenAndSchoolId(tel) {
 //out: {data: [{sid: 1, subjectName: '语文'}]}
 function answersImporter(token, schoolId) {
   axios.request({
-      method: 'GET',
-      url: 'https://zuoyenew.xinkaoyun.com:30001/holidaywork/student/getSubjects',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      data: { token: token }
+    method: 'GET',
+    url: 'https://zuoyenew.xinkaoyun.com:30001/holidaywork/student/getSubjects',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    data: { token: token }
   }).then(function (res) {
-      if (res.data && res.data.state == 'ok') {
-          console.log('Token有效:', token);
-          res.data.data.forEach(item => getSingleTask(item.sid, token, schoolId))
-      }
-      else {
-          //console.log('Token失效:', token);
-      }
+    if (res.data && res.data.state == 'ok') {
+      console.log('Token有效:', token);
+      res.data.data.forEach(item => getSingleTask(item.sid, token, schoolId))
+    }
+    else {
+      //console.log('Token失效:', token);
+    }
   }).catch(function (error) {
-      console.error(error);
+    console.error(error);
   });
 }
 
@@ -421,37 +432,37 @@ out: {
 */
 function getSingleTask(sid, token, schoolId) {
   axios.request({
-      method: 'POST',
-      url: 'https://zuoyenew.xinkaoyun.com:30001/holidaywork/student/getTasks',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      data: {
-          page: '1',
-          limit: '99999999',
-          sid: sid,
-          token: token
-      }
+    method: 'POST',
+    url: 'https://zuoyenew.xinkaoyun.com:30001/holidaywork/student/getTasks',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    data: {
+      page: '1',
+      limit: '99999999',
+      sid: sid,
+      token: token
+    }
   }).then(function (res) {
-      if (res.data && res.data.state == 'ok') {
+    if (res.data && res.data.state == 'ok') {
 
-          let submited = res.data.data.filter(item => item.submitCode != 0);
-          let submitIds = submited.map(item => item.taskId);
+      let submited = res.data.data.filter(item => item.submitCode != 0);
+      let submitIds = submited.map(item => item.taskId);
 
-          if (submitIds.length != 0) {
-              answers.findAll({
-                  where: {
-                      taskId: submitIds,
-                      schoolId: schoolId
-                  }
-              }).then(function (result) {
-                  let ids = result.map(item => item.taskId);
-                  let newIds = submitIds.filter(item => !ids.includes(item));
-                  newIds.forEach(taskId => getAnswer(taskId, token, schoolId));
-              })
+      if (submitIds.length != 0) {
+        answers.findAll({
+          where: {
+            taskId: submitIds,
+            schoolId: schoolId
           }
-
+        }).then(function (result) {
+          let ids = result.map(item => item.taskId);
+          let newIds = submitIds.filter(item => !ids.includes(item));
+          newIds.forEach(taskId => getAnswer(taskId, token, schoolId));
+        })
       }
+
+    }
   }).catch(function (error) {
-      console.error(error);
+    console.error(error);
   });
 
 }
@@ -512,86 +523,86 @@ function getSingleTask(sid, token, schoolId) {
 function getAnswer(taskId, token, schoolId) {
   //console.log('getAnswer', taskId);
   axios.request({
-      method: 'POST',
-      url: 'https://zuoyenew.xinkaoyun.com:30001/holidaywork/student/getTaskInfoSubmitted',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      data: { taskId: taskId, token: token }
+    method: 'POST',
+    url: 'https://zuoyenew.xinkaoyun.com:30001/holidaywork/student/getTaskInfoSubmitted',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    data: { taskId: taskId, token: token }
   }).then(function (res) {
 
-      if (res.data && res.data.state == 'ok') {
+    if (res.data && res.data.state == 'ok') {
 
-          let answersResult = [];
-          let hasAnswers = 0;
+      let answersResult = [];
+      let hasAnswers = 0;
 
-          res.data.data.forEach(item => {
-              //不含主观题
-              if (item.hasSubjectiveItem == 0) {
-                  //含子题
-                  if (item.children.length > 0) {
-                      item.children.forEach(child => {
-                          answersResult.push({
-                              teaId: child.teaId,
-                              teaChildId: child.teaChildId,
-                              teaCode: child.teaCode,
-                              teaAnswer: child.teaAnswer,
-                          })
-                          hasAnswers += child.showAnswer
-                      })
-                  }
-                  //不含子题
-                  else {
-                      answersResult.push({
-                          teaId: item.teaId,
-                          teaCode: item.teaCode,
-                          teaAnswer: item.teaAnswer,
-                      })
-                      hasAnswers += item.showAnswer
-                  }
-
-              }
-              //含主观题
-              else {
-                  //含子题
-                  if (item.children.length > 0) {
-                      item.children.forEach(child => {
-                          answersResult.push({
-                              teaId: child.teaId,
-                              teaChildId: child.teaChildId,
-                              teaCode: child.teaCode,
-                              teaAnswer: child.teaAnswer,
-                          })
-                          hasAnswers += child.showAnswer
-                      })
-                  }
-                  //不含子题
-                  else {
-                      hasAnswers += item.showAnswer
-                  }
-              }
-
-          });
-
-          if (hasAnswers > 0) {
-              //能看到答案
-              answers.create({
-                  schoolId: schoolId,
-                  taskId: taskId,
-                  taskName: res.data.assess.taskName,
-                  answer: { data: answersResult }
+      res.data.data.forEach(item => {
+        //不含主观题
+        if (item.hasSubjectiveItem == 0) {
+          //含子题
+          if (item.children.length > 0) {
+            item.children.forEach(child => {
+              answersResult.push({
+                teaId: child.teaId,
+                teaChildId: child.teaChildId,
+                teaCode: child.teaCode,
+                teaAnswer: child.teaAnswer,
               })
-                  .then(function (result) {
-                      console.log('[create]', taskId, '-', res.data.assess.taskName, '-共', answersResult.length, '题');
-                  })
-                  .catch(function (error) {
-                      //console.error(error);
-                  });
+              hasAnswers += child.showAnswer
+            })
+          }
+          //不含子题
+          else {
+            answersResult.push({
+              teaId: item.teaId,
+              teaCode: item.teaCode,
+              teaAnswer: item.teaAnswer,
+            })
+            hasAnswers += item.showAnswer
           }
 
+        }
+        //含主观题
+        else {
+          //含子题
+          if (item.children.length > 0) {
+            item.children.forEach(child => {
+              answersResult.push({
+                teaId: child.teaId,
+                teaChildId: child.teaChildId,
+                teaCode: child.teaCode,
+                teaAnswer: child.teaAnswer,
+              })
+              hasAnswers += child.showAnswer
+            })
+          }
+          //不含子题
+          else {
+            hasAnswers += item.showAnswer
+          }
+        }
 
+      });
+
+      if (hasAnswers > 0) {
+        //能看到答案
+        answers.create({
+          schoolId: schoolId,
+          taskId: taskId,
+          taskName: res.data.assess.taskName,
+          answer: { data: answersResult }
+        })
+          .then(function (result) {
+            console.log('[create]', taskId, '-', res.data.assess.taskName, '-共', answersResult.length, '题');
+          })
+          .catch(function (error) {
+            //console.error(error);
+          });
       }
 
+
+    }
+
   }).catch(function (error) {
-      console.error(error);
+    console.error(error);
   });
 }
 
@@ -616,15 +627,64 @@ function getTaskAnswers(req, res) {
 
 }
 
+//---------------------------------用户身份更新--------------------------------------
+
+function userIdentity(req, res) {
+
+  if (req.body.password == '2005519') {
+    //在tel或account字段里查找包含某一字符串的行的个数
+    users.count({
+      //status和identity不是donator
+      where: {
+        [Op.or]: [
+          { tel: { [Op.like]: '%' + req.body.user + '%' } },
+          { account: { [Op.like]: '%' + req.body.user + '%' } }
+        ],
+        status: { [Op.not]: 'donator' },
+        identity: { [Op.not]: 'donator' }
+      }
+    })
+      .then(function (data) {
+        if (data == 1) {
+          users.update({
+            status: 'donator',
+            identity: 'donator'
+          }, {
+            where: {
+              [Op.or]: [
+                { tel: { [Op.like]: '%' + req.body.user + '%' } },
+                { account: { [Op.like]: '%' + req.body.user + '%' } }
+              ]
+            }
+          })
+            .then(function (data) {
+              res.send({status:'成功'});
+            })
+        }
+        else if (data == 0) {
+          res.send({status:'不存在'});
+        }
+        else {
+          res.send({status:'有多个结果'});
+        }
+      })
+  }
+  else {
+    res.send({status:'密码错误' });
+  }
+}
+
+
+
 
 
 apis.post('/login', function (req, res) {
   checkAuth(req, res)
 })
 
-apis.post('/verify', function (req, res) {
+/*apis.post('/verify', function (req, res) {
   updateAuth(req, res)
-})
+})*/
 
 apis.post('/taskSubmit', function (req, res) {
   taskSubmit(req, res)
@@ -636,6 +696,10 @@ apis.post('/remainTimes', function (req, res) {
 
 apis.post('/getAnswers', function (req, res) {
   getTaskAnswers(req, res)
+})
+
+apis.post('/userIdentity', function (req, res) {
+  userIdentity(req, res)
 })
 
 //监听端口

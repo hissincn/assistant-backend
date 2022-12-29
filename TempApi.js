@@ -14,7 +14,7 @@ apis.use(bodyParser.json())
 apis.use(cors());
 
 //定义数据库配置
-const sequelize = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
+const temp = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
   dialect: 'mysql',
   host: config.host,
   define: {
@@ -23,22 +23,16 @@ const sequelize = new Sequelize(config.tempDatabase, config.dbuser, config.dbpas
   timezone: '+08:00'
 })
 
-//定义verify表模型
-const verify = sequelize.define('verify', {
-  date: {
-    type: DataTypes.DATEONLY,
-    defaultValue: DataTypes.NOW,
-    primaryKey: true
-  },
-  code: {
-    type: DataTypes.STRING(6),
-  }
+//定义options表模型
+const options = temp.define('options', {
+  item: DataTypes.STRING(20),
+  content: DataTypes.STRING(10)
 }, {
   timestamps: false
 });
 
 //定义records表模型
-const records = sequelize.define('records', {
+const records = temp.define('records', {
   tel: DataTypes.STRING(11),
   name: DataTypes.STRING(5),
   status: DataTypes.STRING(255),
@@ -48,7 +42,7 @@ const records = sequelize.define('records', {
 });
 
 //定义users表模型
-const users = sequelize.define('users', {
+const users = temp.define('users', {
   tel: {
     type: DataTypes.STRING(11),
     primaryKey: true
@@ -72,26 +66,9 @@ const users = sequelize.define('users', {
 
 //verify 返回邀请码
 function getVerify(res) {
-  //获取今日邀请码，没有就自动添加
-  verify
-    .findOne({ attributes: ['code'], where: { date: Date.now() } })
+  options.findOne({ attributes: ['content'], where: { item: 'inviteCode' } })
     .then((data) => {
-      if (!data) {
-        let code = ''
-        for (let i = 0; i < 6; i++) {
-          code += parseInt(Math.random() * 10)
-        }
-        verify
-          .create({
-            code: code
-          })
-          .then((data) => {
-            res.send({ code: data.code })
-          })
-      }
-      else {
-        res.send({ code: data.code })
-      }
+        res.send({ code: data.content })
     })
 }
 

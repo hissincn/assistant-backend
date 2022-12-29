@@ -15,28 +15,6 @@ const temp = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword
     timezone: '+08:00'
 })
 
-//定义users表模型
-const users = temp.define('users', {
-    tel: {
-        type: DataTypes.STRING(11),
-        primaryKey: true
-    },
-    name: {
-        type: DataTypes.STRING(5),
-        primaryKey: true
-    },
-    password: DataTypes.STRING(255),
-    info: {
-        type: DataTypes.JSON,
-        defaultValue: {}
-    },
-    status: DataTypes.STRING(20),
-    infoRaw: {
-        type: DataTypes.JSON,
-        defaultValue: {}
-    }
-});
-
 //定义records表模型
 const records = temp.define('records', {
     tel: DataTypes.STRING(11),
