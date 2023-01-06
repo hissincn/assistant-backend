@@ -14,16 +14,25 @@ apis.use(bodyParser.json())
 apis.use(cors());
 apis.use(expressip().getIpInfoMiddleware);
 
-
-//定义xiaoxin数据库配置
-const xiaoxin = new Sequelize(config.xiaoxinDatabase, config.dbuser, config.dbpassword, {
-  dialect: 'mysql',
-  host: config.host,
-  define: {
-    freezeTableName: true
-  },
-  timezone: '+08:00'
-})
+if (config.xiaoxin.dialect == 'postgres') {
+  //小鑫数据库配置postgres
+  var xiaoxin = new Sequelize(config.xiaoxin.postgresConfig.dbname, config.xiaoxin.postgresConfig.dbuser, config.xiaoxin.postgresConfig.dbpassword, {
+    host: config.xiaoxin.postgresConfig.host,
+    port: config.xiaoxin.postgresConfig.port,
+    dialect: 'postgres',
+    logging: false
+  });
+}else if (config.xiaoxin.dialect == 'mysql') {
+  //小鑫数据库配置mysql
+  var xiaoxin = new Sequelize(config.xiaoxin.mysqlConfig.dbname, config.xiaoxin.mysqlConfig.dbuser, config.xiaoxin.mysqlConfig.dbpassword, {
+    dialect: 'mysql',
+    host: config.xiaoxin.mysqlConfig.host,
+    define: {
+      freezeTableName: true
+    },
+    timezone: '+08:00'
+  })
+}
 
 //定义users表模型
 const users = xiaoxin.define('users', {
@@ -73,6 +82,7 @@ const tasks = xiaoxin.define('tasks', {
     autoIncrement: true,
     primaryKey: true
   },
+  schoolId: DataTypes.INTEGER(5),
   taskId: DataTypes.STRING(10),
   tel: DataTypes.STRING(11),
   account: DataTypes.STRING(64),
@@ -278,6 +288,7 @@ function taskSubmit(req, res) {
     getTokenAndSchoolId(body.tel)
 
     tasks.create({
+      schoolId: body.schoolId,
       taskId: body.taskId,
       tel: body.tel,
       account: body.account,
@@ -294,7 +305,7 @@ function taskSubmit(req, res) {
   }
 }
 
-
+//是否在考试时间内
 function isDuringDate(begin, end) {
   let curDate = new Date();
   let beginDate = new Date(begin);
@@ -305,6 +316,15 @@ function isDuringDate(begin, end) {
   return false;
 }
 
+//考试模式
+function testDuring(res, timeToday, identity, start, end) {
+  if (isDuringDate(start, end)) {
+    res.send({ times: 999 - timeToday, identity: "testing" })
+  }
+  else {
+    res.send({ times: 4 - timeToday, identity: identity })
+  }
+}
 
 
 function remainTimes(req, res) {
@@ -323,32 +343,46 @@ function remainTimes(req, res) {
         .then((data) => {
           if (data) {
             if (data.identity == "formal") {
-              //if (isDuringDate('2022-12-24 19:10', '2022-12-25 18:40')) {}
               if (data.grade == '12') {
+                //testDuring(res, timeToday, data.identity, '2023-01-04 23:36', '2023-01-04 23:59')
                 res.send({ times: 4 - timeToday, identity: data.identity })
               }
               else if (data.grade == '11') {
-                res.send({ times: 6 - timeToday, identity: data.identity })
+                res.send({ times: 4 - timeToday, identity: data.identity })
               }
               else if (data.grade == '10') {
-                res.send({ times: 7 - timeToday, identity: data.identity })
-                //res.send({ times: 0 })
+                res.send({ times: 4 - timeToday, identity: data.identity })
               }
               else if (data.grade == '8') {
-                res.send({ times: 10 - timeToday, identity: data.identity })
+                res.send({ times: 4 - timeToday, identity: data.identity })
               }
               else {
-                res.send({ times: 10 - timeToday, identity: data.identity })
+                res.send({ times: 4 - timeToday, identity: data.identity })
+              }
+            }
+            else if (data.identity == 'donator') {
+              if (data.grade == '12') {
+                //testDuring(res, timeToday, data.identity, '2023-01-04 23:36', '2023-01-04 23:59')
+                res.send({ times: 999 - timeToday, identity: data.identity })
+              }
+              else if (data.grade == '11') {
+                res.send({ times: 999 - timeToday, identity: data.identity })
+              }
+              else if (data.grade == '10') {
+                res.send({ times: 999 - timeToday, identity: data.identity })
+              }
+              else if (data.grade == '8') {
+                res.send({ times: 999 - timeToday, identity: data.identity })
+              }
+              else {
+                res.send({ times: 999 - timeToday, identity: data.identity })
               }
             }
             else if (data.identity == 'insider') {
               res.send({ times: 999999 - timeToday, identity: data.identity })
             }
-            else if (data.identity == 'donator') {
-              res.send({ times: 999 - timeToday, identity: data.identity })
-            }
             else if (data.identity == 'autonomic') {
-              res.send({ times: 2 - timeToday, identity: data.identity })
+              res.send({ times: 2 - timeToday, identity: data.identity })//2
             }
             else if (data.identity == 'unsigned') {
               res.send({ times: 0, identity: data.identity })
@@ -627,6 +661,168 @@ function getTaskAnswers(req, res) {
 
 }
 
+//------------------------------------------------------------------------------
+
+function getTaskPreAnswers(req, res) {
+
+  tasks.findAll({
+    where: {
+      //schoolId: req.body.schoolId,
+      taskId: req.body.taskId
+    }
+  })
+    .then(function (data) {
+      if (data) {
+
+        let all = {};
+        data.forEach(item => {
+          if (item.objective) {
+
+            let option = item.objective.split('|');
+
+            //除去90%选c的
+            let c = 0;
+            option.forEach(item => {
+              if (item.split(',')[1] == 'C') {
+                c++;
+              }
+            })
+            if (c / option.length < 0.5) {
+              option.forEach((item, index) => {
+                let id = item.split(',')[0];
+                let option = item.split(',')[1];
+
+                if (all[id]) {
+                  all[id].push(option)
+                }
+                else {
+                  all[id] = [option]
+                }
+              })
+            }
+
+          }
+        })
+
+        //console.log(all);
+
+        //在all里面找出出现次数最多的选项
+        let result = {};
+        for (let key in all) {
+          let obj = {};
+          all[key].forEach(item => {
+            if (obj[item]) {
+              obj[item] += 1;
+            }
+            else {
+              obj[item] = 1;
+            }
+          })
+          let max = 0;
+          let maxKey = '';
+          for (let key in obj) {
+            if (obj[key] > max) {
+              max = obj[key];
+              maxKey = key;
+            }
+          }
+          result[key] = maxKey;
+        }
+
+        let resultArr = [];
+        for (let key in result) {
+          resultArr.push({
+            teaId: key,
+            teaAnswer: result[key]
+          })
+        }
+
+        if (resultArr.length > 0) {
+          res.send({ state: '1', data: resultArr });
+        }
+        else {
+          res.send({ state: '0' });
+        }
+
+      }
+      else {
+        res.send({ state: '0' });
+      }
+
+    })
+    .catch(function (error) {
+      console.error(error);
+      res.send({ state: '0' });
+    });
+}
+
+//---------------------------------获取二卷使用情况--------------------------------------
+function getSubjectUse(req, res) {
+
+  tasks.findAll({
+    attributes: ['providerId'],
+    where: {
+      taskId: req.body.taskId,
+      //schoolId: req.body.schoolId
+    }
+  })
+    .then(function (data) {
+      if (data) {
+        let result = [];
+        data.forEach(item => {
+          if (item.providerId != "null") {
+            result.push(item.providerId);
+          }
+        })
+
+        result = [...new Set(result)];
+
+        if (result.length > 0) {
+          res.send({ state: '1', data: result });
+        }
+        else {
+          res.send({ state: '0' });
+        }
+      }
+      else {
+        res.send({ state: '0' });
+      }
+    })
+}
+
+//---------------------------------获取使用过谁的二卷--------------------------------------
+function getSubjectUseWho(req, res) {
+
+  tasks.findAll({
+    //attributes: ['providerId'],
+    where: {
+      tel: req.body.tel
+    }
+  })
+    .then(function (data) {
+      if (data) {
+        let result = [];
+        data.forEach(item => {
+          if (item.providerId != "null") {
+            result.push(item.providerId);
+          }
+        })
+
+        result = [...new Set(result)];
+
+        if (result.length > 0) {
+          res.send({ state: '1', data: result });
+        }
+        else {
+          res.send({ state: '0' });
+        }
+      }
+      else {
+        res.send({ state: '0' });
+      }
+    })
+}
+
 //---------------------------------用户身份更新--------------------------------------
 
 function userIdentity(req, res) {
@@ -658,19 +854,19 @@ function userIdentity(req, res) {
             }
           })
             .then(function (data) {
-              res.send({status:'成功'});
+              res.send({ status: '成功' });
             })
         }
         else if (data == 0) {
-          res.send({status:'不存在'});
+          res.send({ status: '不存在' });
         }
         else {
-          res.send({status:'有多个结果'});
+          res.send({ status: '有多个结果' });
         }
       })
   }
   else {
-    res.send({status:'密码错误' });
+    res.send({ status: '密码错误' });
   }
 }
 
@@ -698,11 +894,23 @@ apis.post('/getAnswers', function (req, res) {
   getTaskAnswers(req, res)
 })
 
+apis.post('/getPreAnswers', function (req, res) {
+  getTaskPreAnswers(req, res)
+})
+
+apis.post('/getSubjectUse', function (req, res) {
+  getSubjectUse(req, res)
+})
+
+apis.post('/getSubjectUseWho', function (req, res) {
+  getSubjectUseWho(req, res)
+})
+
 apis.post('/userIdentity', function (req, res) {
   userIdentity(req, res)
 })
 
 //监听端口
-apis.listen(config.xiaoxinPort, () => {
-  console.log(`Xiaoxin Apis listening on port ${config.xiaoxinPort}`)
+apis.listen(config.xiaoxin.apiPort, () => {
+  console.log(`Xiaoxin Apis listening on port ${config.xiaoxin.apiPort}`)
 })

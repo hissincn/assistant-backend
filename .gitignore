@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 config.json
 qunBot-add.js
-AnswerGetter.js
+answerGetter.js

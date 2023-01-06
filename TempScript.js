@@ -2,21 +2,28 @@ var config = require('./config.json');
 var { Sequelize, DataTypes, Op } = require('sequelize');
 var axios = require('axios');
 
-
-
-//定义数据库配置
-const sequelize = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
-    dialect: 'mysql',
-    host: config.dbhost,
-    define: {
-        freezeTableName: true
-    },
-    timezone: '+08:00'
-
-})
+if (config.temp.dialect == 'postgres') {
+    //体温数据库配置postgres
+    var temp = new Sequelize(config.temp.postgresConfig.dbname, config.temp.postgresConfig.dbuser, config.temp.postgresConfig.dbpassword, {
+        host: config.temp.postgresConfig.host,
+        port: config.temp.postgresConfig.port,
+        dialect: 'postgres',
+        logging: false
+    })
+} else if (config.temp.dialect == 'mysql') {
+    //体温数据库配置mysql
+    var temp = new Sequelize(config.temp.mysqlConfig.dbname, config.temp.mysqlConfig.dbuser, config.temp.mysqlConfig.dbpassword, {
+        dialect: 'mysql',
+        host: config.temp.mysqlConfig.host,
+        define: {
+            freezeTableName: true
+        },
+        timezone: '+08:00'
+    })
+}
 
 //定义records表模型
-const records = sequelize.define('records', {
+const records = temp.define('records', {
     tel: DataTypes.STRING(11),
     name: DataTypes.STRING(5),
     status: DataTypes.STRING(255),
@@ -25,9 +32,8 @@ const records = sequelize.define('records', {
     updatedAt: false
 });
 
-
 //定义users表模型
-const users = sequelize.define('users', {
+const users = temp.define('users', {
     tel: {
         type: DataTypes.STRING(11),
         primaryKey: true

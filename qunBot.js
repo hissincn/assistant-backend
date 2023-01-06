@@ -13,25 +13,45 @@ const axios = require('axios');
 
 //---------------------------------数据库配置-----------------------------------------
 
-//定义数据库配置
-const temp = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
-    dialect: 'mysql',
-    host: config.host,
-    define: {
-        freezeTableName: true
-    },
-    timezone: '+08:00'
-})
+if (config.temp.dialect == 'postgres') {
+    //体温数据库配置postgres
+    var temp = new Sequelize(config.temp.postgresConfig.dbname, config.temp.postgresConfig.dbuser, config.temp.postgresConfig.dbpassword, {
+        host: config.temp.postgresConfig.host,
+        port: config.temp.postgresConfig.port,
+        dialect: 'postgres',
+        logging: false
+    })
+} else if (config.temp.dialect == 'mysql') {
+    //体温数据库配置mysql
+    var temp = new Sequelize(config.temp.mysqlConfig.dbname, config.temp.mysqlConfig.dbuser, config.temp.mysqlConfig.dbpassword, {
+        dialect: 'mysql',
+        host: config.temp.mysqlConfig.host,
+        define: {
+            freezeTableName: true
+        },
+        timezone: '+08:00'
+    })
+}
 
-//定义xiaoxin数据库配置
-const xiaoxin = new Sequelize(config.xiaoxinDatabase, config.dbuser, config.dbpassword, {
-    dialect: 'mysql',
-    host: config.host,
-    define: {
+if (config.xiaoxin.dialect == 'postgres') {
+    //小鑫数据库配置postgres
+    var xiaoxin = new Sequelize(config.xiaoxin.postgresConfig.dbname, config.xiaoxin.postgresConfig.dbuser, config.xiaoxin.postgresConfig.dbpassword, {
+      host: config.xiaoxin.postgresConfig.host,
+      port: config.xiaoxin.postgresConfig.port,
+      dialect: 'postgres',
+      logging: false
+    });
+  }else if (config.xiaoxin.dialect == 'mysql') {
+    //小鑫数据库配置mysql
+    var xiaoxin = new Sequelize(config.xiaoxin.mysqlConfig.dbname, config.xiaoxin.mysqlConfig.dbuser, config.xiaoxin.mysqlConfig.dbpassword, {
+      dialect: 'mysql',
+      host: config.xiaoxin.mysqlConfig.host,
+      define: {
         freezeTableName: true
-    },
-    timezone: '+08:00'
-})
+      },
+      timezone: '+08:00'
+    })
+  }
 
 //定义options表模型
 const options = temp.define('options', {

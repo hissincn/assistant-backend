@@ -13,15 +13,25 @@ apis.use(bodyParser.urlencoded({ extended: false }))
 apis.use(bodyParser.json())
 apis.use(cors());
 
-//定义数据库配置
-const temp = new Sequelize(config.tempDatabase, config.dbuser, config.dbpassword, {
-  dialect: 'mysql',
-  host: config.host,
-  define: {
-    freezeTableName: true
-  },
-  timezone: '+08:00'
-})
+if (config.temp.dialect == 'postgres') {
+  //体温数据库配置postgres
+  var temp = new Sequelize(config.temp.postgresConfig.dbname, config.temp.postgresConfig.dbuser, config.temp.postgresConfig.dbpassword, {
+      host: config.temp.postgresConfig.host,
+      port: config.temp.postgresConfig.port,
+      dialect: 'postgres',
+      logging: false
+  })
+} else if (config.temp.dialect == 'mysql') {
+  //体温数据库配置mysql
+  var temp = new Sequelize(config.temp.mysqlConfig.dbname, config.temp.mysqlConfig.dbuser, config.temp.mysqlConfig.dbpassword, {
+      dialect: 'mysql',
+      host: config.temp.mysqlConfig.host,
+      define: {
+          freezeTableName: true
+      },
+      timezone: '+08:00'
+  })
+}
 
 //定义options表模型
 const options = temp.define('options', {
@@ -42,7 +52,7 @@ const records = temp.define('records', {
 });
 
 //定义users表模型
-const users = temp.define('users', {
+const users = mysql.define('users', {
   tel: {
     type: DataTypes.STRING(11),
     primaryKey: true
@@ -68,7 +78,7 @@ const users = temp.define('users', {
 function getVerify(res) {
   options.findOne({ attributes: ['content'], where: { item: 'inviteCode' } })
     .then((data) => {
-        res.send({ code: data.content })
+      res.send({ code: data.content })
     })
 }
 
@@ -252,8 +262,8 @@ apis.post('/InfoUpdate', function (req, res) {
 })
 
 //监听端口
-apis.listen(config.tempPort, () => {
-  console.log(`Example app listening on port ${config.tempPort}`)
+apis.listen(config.temp.apiPort, () => {
+  console.log(`Example app listening on port ${config.temp.apiPort}`)
 })
 
 

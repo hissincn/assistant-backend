@@ -8,16 +8,25 @@ const { Sequelize, DataTypes } = require('sequelize');
 //const students = require('./students.json');
 const axios = require('axios');
 
-
-//定义xiaoxin数据库配置
-const xiaoxin = new Sequelize(config.xiaoxinDatabase, config.dbuser, config.dbpassword, {
-    dialect: 'mysql',
-    host: config.host,
-    define: {
+if (config.xiaoxin.dialect == 'postgres') {
+    //小鑫数据库配置postgres
+    var xiaoxin = new Sequelize(config.xiaoxin.postgresConfig.dbname, config.xiaoxin.postgresConfig.dbuser, config.xiaoxin.postgresConfig.dbpassword, {
+      host: config.xiaoxin.postgresConfig.host,
+      port: config.xiaoxin.postgresConfig.port,
+      dialect: 'postgres',
+      logging: false
+    });
+  }else if (config.xiaoxin.dialect == 'mysql') {
+    //小鑫数据库配置mysql
+    var xiaoxin = new Sequelize(config.xiaoxin.mysqlConfig.dbname, config.xiaoxin.mysqlConfig.dbuser, config.xiaoxin.mysqlConfig.dbpassword, {
+      dialect: 'mysql',
+      host: config.xiaoxin.mysqlConfig.host,
+      define: {
         freezeTableName: true
-    },
-    timezone: '+08:00'
-})
+      },
+      timezone: '+08:00'
+    })
+  }
 
 //定义answers表模型
 const answers = xiaoxin.define('answers', {
