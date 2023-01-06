@@ -1,8 +1,8 @@
 /*--------------------------------------------------------------------------------
     author:  hissin'
     mail:    hissin@126.com
-    date:    2022-12-13
-    version: 2.0
+    date:    2023-01-06
+    version: 3.0
     description: 小鑫/体温助手机器人
 --------------------------------------------------------------------------------*/
 
@@ -160,9 +160,9 @@ const tasks = xiaoxin.define('tasks', {
 const bot = new Bot();
 
 bot.open({
-    baseUrl: 'http://47.95.203.201:8082',
-    verifyKey: '2005519',
-    qq: 1096192509,
+    baseUrl: config.bot.baseUrl,
+    verifyKey: config.bot.verifyKey,
+    qq: config.bot.qq,
 })
 
 const autoJoin = true;

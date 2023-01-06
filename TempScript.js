@@ -24,6 +24,12 @@ if (config.temp.dialect == 'postgres') {
 
 //定义records表模型
 const records = temp.define('records', {
+    //id自增
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
     tel: DataTypes.STRING(11),
     name: DataTypes.STRING(5),
     status: DataTypes.STRING(255),
@@ -31,6 +37,7 @@ const records = temp.define('records', {
     timestamps: true,
     updatedAt: false
 });
+
 
 //定义users表模型
 const users = temp.define('users', {
@@ -156,11 +163,7 @@ function submitTemp(token, person) {
 }
 
 function addRecord(tel, name, status) {
-    console.log({
-        tel: tel,
-        name: name,
-        status: status,
-    })
+    console.log(tel, name, status)
     records
         .create({
             tel: tel,

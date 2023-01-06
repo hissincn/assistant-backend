@@ -52,7 +52,7 @@ const records = temp.define('records', {
 });
 
 //定义users表模型
-const users = mysql.define('users', {
+const users = temp.define('users', {
   tel: {
     type: DataTypes.STRING(11),
     primaryKey: true

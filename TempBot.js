@@ -26,10 +26,15 @@ if (config.temp.dialect == 'postgres') {
 
 //定义records表模型
 const records = temp.define('records', {
+    //id自增
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
     tel: DataTypes.STRING(11),
     name: DataTypes.STRING(5),
     status: DataTypes.STRING(255),
-    createdAt: DataTypes.DATEONLY
 }, {
     timestamps: true,
     updatedAt: false
@@ -55,7 +60,10 @@ function nameMask(name) {
 
 records.findAll({
     where: {
-        createdAt: Date.now(),
+        //createdAt是今天的
+        createdAt: {
+            [Sequelize.Op.gt]: new Date(new Date().toLocaleDateString())
+        }
     }
 }).then(res => {
 
@@ -87,14 +95,14 @@ function send(errorUsers, selfSubmitUsers, successUsers, otherUsers) {
 
     //QQ
     bot.open({
-        baseUrl: 'http://47.95.203.201:8082',
-        verifyKey: '2005519',
-        qq: 3495997931,
+        baseUrl: config.bot.baseUrl,
+        verifyKey: config.bot.verifyKey,
+        qq: config.bot.qq,
     })
         .then(async () => {
             console.log('Bot started');
 
-            for await (gro of [194790193, 745731575, 756016909]) {
+            for await (gro of [194790193, 745731575, 756016909, 729086422]) {
                 await bot.sendMessage({
                     // 群号
                     group: gro,
@@ -102,7 +110,7 @@ function send(errorUsers, selfSubmitUsers, successUsers, otherUsers) {
                     message: [
                         {
                             type: 'Plain',
-                            text: `[${new Date().toLocaleString()}]体温助手通知\n成功提交${successUsers.length}人\n自己提交${selfSubmitUsers.length}人\n密码错误(${errorUsers.length}人)\n${errorUsers.map(user => nameMask(user.name)).join("，")}\n其他状态(${otherUsers.length}人)\n${otherUsers.map(user => `${nameMask(user.name)}:${user.status}`).join("\n")}\n\n注册、查询或修改信息请登录：https://temp.geekpara.com/`
+                            text: `[${new Date().toLocaleString()}验证码]体温助手通知\n成功提交${successUsers.length}人\n自己提交${selfSubmitUsers.length}人\n密码错误(${errorUsers.length}人)\n${errorUsers.map(user => nameMask(user.name)).join("，")}\n其他状态(${otherUsers.length}人)\n${otherUsers.map(user => `${nameMask(user.name)}:${user.status}`).join("\n")}\n\n注册、查询或修改信息请登录：https://temp.geekpara.com/`
                         },
                     ],
                 });
@@ -114,7 +122,7 @@ function send(errorUsers, selfSubmitUsers, successUsers, otherUsers) {
         method: 'POST',
         url: 'https://oapi.dingtalk.com/robot/send',
         params: {
-            access_token: '1ca940bb5fea336c42f13378bdbb008df09abd7d3d73230992126dcc9e5218eb'
+            access_token: config.bot.dingtalkKey
         },
         headers: { 'content-type': 'application/json' },
         data: {
