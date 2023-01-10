@@ -1,4 +1,4 @@
-const { Bot, Message } = require('mirai-js');
+const { Bot } = require('mirai-js');
 const config = require('./config.json');
 const { Sequelize, DataTypes } = require('sequelize');
 const axios = require('axios');
@@ -58,87 +58,107 @@ function nameMask(name) {
 
 }
 
-records.findAll({
-    where: {
-        //createdAt是今天的
-        createdAt: {
-            [Sequelize.Op.gt]: new Date(new Date().toLocaleDateString())
-        }
-    }
-}).then(res => {
+function send(errorUsers, selfSubmitUsers, successUsers, otherUsers, callback) {
 
-    let errorUsers = [];//错误用户
-    let selfSubmitUsers = [];//自己提交的
-    let successUsers = [];//成功提交的用户
-    let otherUsers = [];//其他状态的用户
-
-    //process data
-    res.forEach(user => {
-        if (user.status == '密码错误') {
-            errorUsers.push(user);
-        } else if (user.status == '已提交，不可重复') {
-            selfSubmitUsers.push(user);
-        } else if (user.status.indexOf("°C") != -1) {
-            successUsers.push(user);
-        } else {
-            otherUsers.push(user);
-        }
-    });
-
-    //send message
-    send(errorUsers, selfSubmitUsers, successUsers, otherUsers);
-
-})
-
-
-function send(errorUsers, selfSubmitUsers, successUsers, otherUsers) {
-
-    //QQ
-    bot.open({
-        baseUrl: config.bot.baseUrl,
-        verifyKey: config.bot.verifyKey,
-        qq: config.bot.qq,
-    })
-        .then(async () => {
-            console.log('Bot started');
-
-            for await (gro of [194790193, 745731575, 756016909, 729086422]) {
-                await bot.sendMessage({
-                    // 群号
-                    group: gro,
-                    // 是 http server 接口所需的原始格式，若提供则优先使用
-                    message: [
-                        {
-                            type: 'Plain',
-                            text: `[${new Date().toLocaleString()}验证码]体温助手通知\n成功提交${successUsers.length}人\n自己提交${selfSubmitUsers.length}人\n密码错误(${errorUsers.length}人)\n${errorUsers.map(user => nameMask(user.name)).join("，")}\n其他状态(${otherUsers.length}人)\n${otherUsers.map(user => `${nameMask(user.name)}:${user.status}`).join("\n")}\n\n注册、查询或修改信息请登录：https://temp.geekpara.com/`
-                        },
-                    ],
-                });
-            }
+    let qq = new Promise((resolve, reject) => {
+        //QQ
+        bot.open({
+            baseUrl: config.bot.baseUrl,
+            verifyKey: config.bot.verifyKey,
+            qq: config.bot.qq,
         })
+            .then(async () => {
+                for await (gro of [194790193, 745731575, 756016909, 729086422, 305432291]) {
+                    await bot.sendMessage({
+                        // 群号
+                        group: gro,
+                        // 是 http server 接口所需的原始格式，若提供则优先使用
+                        message: [
+                            {
+                                type: 'Plain',
+                                text: `[${new Date().toLocaleString()}验证码]体温助手通知\n成功提交${successUsers.length}人\n自己提交${selfSubmitUsers.length}人\n密码错误(${errorUsers.length}人)\n${errorUsers.map(user => nameMask(user.name)).join("，")}\n其他状态(${otherUsers.length}人)\n${otherUsers.map(user => `${nameMask(user.name)}:${user.status}`).join("\n")}\n\n注册、查询或修改信息请登录：https://temp.geekpara.com/`
+                            },
+                        ],
+                    });
+                }
+            })
+            .then(() => {
+                resolve('QQ群成功发送')
+            })
+            .catch((err) => {
+                reject('QQ群发送失败');
+            });
+    })
 
-    //钉钉
-    axios.request({
-        method: 'POST',
-        url: 'https://oapi.dingtalk.com/robot/send',
-        params: {
-            access_token: config.bot.dingtalkKey
-        },
-        headers: { 'content-type': 'application/json' },
-        data: {
-            "actionCard": {
-                "title": "体温助手通知",
-                "text": `#### [${new Date().toLocaleString()}]体温助手通知\n ##### 成功提交${successUsers.length}人\n ##### 自己提交${selfSubmitUsers.length}人 \n##### 密码错误(${errorUsers.length}人) \n ${errorUsers.map(user => `> ###### ${nameMask(user.name)}:${user.status}`).join("\r")} \n##### 其他状态(${otherUsers.length}人) \n ${otherUsers.map(user => `> ###### ${nameMask(user.name)}:${user.status}`).join("\n")}`,
-                "btnOrientation": "0",
-                "singleTitle": "查询打卡状态/注册或修改信息",
-                "singleURL": "dingtalk://dingtalkclient/page/link?url=https://temp.geekpara.com&pc_slide=false"
+    let dingtalk = new Promise((resolve, reject) => {
+        //钉钉
+        axios.request({
+            method: 'POST',
+            url: 'https://oapi.dingtalk.com/robot/send',
+            params: {
+                access_token: config.bot.dingtalkKey
             },
-            "msgtype": "actionCard"
-        }
-    }).then(function (response) {
-        console.log(response.data);
-    }).catch(function (error) {
-        console.error(error);
-    });
+            headers: { 'content-type': 'application/json' },
+            data: {
+                "actionCard": {
+                    "title": "体温助手通知",
+                    "text": `#### [${new Date().toLocaleString()}]体温助手通知\n ##### 成功提交${successUsers.length}人\n ##### 自己提交${selfSubmitUsers.length}人 \n##### 密码错误(${errorUsers.length}人) \n ${errorUsers.map(user => `> ###### ${nameMask(user.name)}:${user.status}`).join("\r")} \n##### 其他状态(${otherUsers.length}人) \n ${otherUsers.map(user => `> ###### ${nameMask(user.name)}:${user.status}`).join("\n")}`,
+                    "btnOrientation": "0",
+                    "singleTitle": "查询打卡状态/注册或修改信息",
+                    "singleURL": "dingtalk://dingtalkclient/page/link?url=https://temp.geekpara.com&pc_slide=false"
+                },
+                "msgtype": "actionCard"
+            }
+        }).then(function (response) {
+            resolve('钉钉成功发送')
+        }).catch(function (err) {
+            reject('钉钉成功失败')
+        });
+    })
+
+    Promise.all([qq, dingtalk]).then((result) => {
+        console.log(result)
+        callback(null, '通知成功');
+      }).catch((error) => {
+        console.log(error)
+        callback(null, '通知失败');
+      })
 
 }
+
+exports.handler = function (event, context, callback) {
+
+    records.findAll({
+        where: {
+            //createdAt是今天的
+            createdAt: {
+                [Sequelize.Op.gt]: new Date(new Date().toLocaleDateString())
+            }
+        }
+    }).then(res => {
+
+        let errorUsers = [];//错误用户
+        let selfSubmitUsers = [];//自己提交的
+        let successUsers = [];//成功提交的用户
+        let otherUsers = [];//其他状态的用户
+
+        //process data
+        res.forEach(user => {
+            if (user.status == '密码错误') {
+                errorUsers.push(user);
+            } else if (user.status == '已提交，不可重复') {
+                selfSubmitUsers.push(user);
+            } else if (user.status.indexOf("°C") != -1) {
+                successUsers.push(user);
+            } else {
+                otherUsers.push(user);
+            }
+        });
+
+        //send message
+        send(errorUsers, selfSubmitUsers, successUsers, otherUsers, callback);
+
+    })
+
+
+};

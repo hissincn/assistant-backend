@@ -20,7 +20,7 @@ if (config.xiaoxin.dialect == 'postgres') {
     host: config.xiaoxin.postgresConfig.host,
     port: config.xiaoxin.postgresConfig.port,
     dialect: 'postgres',
-    logging: false
+    logging: false,
   });
 }else if (config.xiaoxin.dialect == 'mysql') {
   //小鑫数据库配置mysql
@@ -30,7 +30,8 @@ if (config.xiaoxin.dialect == 'postgres') {
     define: {
       freezeTableName: true
     },
-    timezone: '+08:00'
+    timezone: '+08:00',
+    logging: false
   })
 }
 
@@ -152,7 +153,7 @@ function checkAuth(req, res) {
                 code: code
               });
             })
-            .catch(err => { console.log(err) })
+            .catch(err => { console.log("1") })
         }
         else {
           //如果用户存在,但是未激活,则返回未激活状态
@@ -167,7 +168,7 @@ function checkAuth(req, res) {
                 tel: body.userMobile
               }
             })
-              .catch(err => console.log(err))
+              .catch(err => console.log("2"))
             res.send({
               status: "unsigned",
               code: data.verifyCode
@@ -201,7 +202,7 @@ function checkAuth(req, res) {
                   tel: body.userMobile
                 }
               })
-                .catch(err => console.log(err))
+                .catch(err => console.log("3"))
               res.send({
                 status: "active"
               })
@@ -301,7 +302,7 @@ function taskSubmit(req, res) {
       .then(() => {
         res.send("1")
       })
-      .catch(err => console.log(err))
+      .catch(err => console.log("4"))
   }
 }
 
@@ -345,37 +346,41 @@ function remainTimes(req, res) {
             if (data.identity == "formal") {
               if (data.grade == '12') {
                 //testDuring(res, timeToday, data.identity, '2023-01-04 23:36', '2023-01-04 23:59')
-                res.send({ times: 4 - timeToday, identity: data.identity })
+                res.send({ times: 999999 - timeToday, identity: data.identity })
               }
               else if (data.grade == '11') {
-                res.send({ times: 4 - timeToday, identity: data.identity })
+                //res.send({ times: 4 - timeToday, identity: data.identity })
+                testDuring(res, timeToday, data.identity, '2023-01-07 07:30', '2023-01-08 10:00')
               }
               else if (data.grade == '10') {
-                res.send({ times: 4 - timeToday, identity: data.identity })
+                //res.send({ times: 4 - timeToday, identity: data.identity })
+                testDuring(res, timeToday, data.identity, '2023-01-06 19:00', '2023-01-08 16:00')
               }
               else if (data.grade == '8') {
-                res.send({ times: 4 - timeToday, identity: data.identity })
+                res.send({ times: 999999 - timeToday, identity: data.identity })
               }
               else {
-                res.send({ times: 4 - timeToday, identity: data.identity })
+                res.send({ times: 999999 - timeToday, identity: data.identity })
               }
             }
             else if (data.identity == 'donator') {
               if (data.grade == '12') {
                 //testDuring(res, timeToday, data.identity, '2023-01-04 23:36', '2023-01-04 23:59')
-                res.send({ times: 999 - timeToday, identity: data.identity })
+                res.send({ times: 999999 - timeToday, identity: data.identity })
               }
               else if (data.grade == '11') {
-                res.send({ times: 999 - timeToday, identity: data.identity })
+                //.send({ times: 999 - timeToday, identity: data.identity })
+                testDuring(res, timeToday, data.identity, '2023-01-07 07:30', '2023-01-08 10:00')
               }
               else if (data.grade == '10') {
-                res.send({ times: 999 - timeToday, identity: data.identity })
+                //res.send({ times: 999 - timeToday, identity: data.identity })
+                testDuring(res, timeToday, data.identity, '2023-01-06 19:00', '2023-01-08 16:00')
               }
               else if (data.grade == '8') {
-                res.send({ times: 999 - timeToday, identity: data.identity })
+                res.send({ times: 999999 - timeToday, identity: data.identity })
               }
               else {
-                res.send({ times: 999 - timeToday, identity: data.identity })
+                res.send({ times: 999999 - timeToday, identity: data.identity })
               }
             }
             else if (data.identity == 'insider') {
@@ -395,9 +400,9 @@ function remainTimes(req, res) {
             res.send({ times: 0 })
           }
         })
-        .catch(err => { console.log(err) })
+        .catch(err => { console.log("5") })
     })
-    .catch(err => { console.log(err) })
+    .catch(err => { console.log("6") })
 
 }
 
@@ -416,6 +421,7 @@ function getTokenAndSchoolId(tel) {
       answersImporter(token, schoolId);
     }
   })
+  .catch(err => console.log("7"))
 }
 
 //------------------------------------------------------------------------------
@@ -438,7 +444,7 @@ function answersImporter(token, schoolId) {
       //console.log('Token失效:', token);
     }
   }).catch(function (error) {
-    console.error(error);
+    console.error("8");
   });
 }
 
@@ -496,7 +502,7 @@ function getSingleTask(sid, token, schoolId) {
 
     }
   }).catch(function (error) {
-    console.error(error);
+    console.error("9");
   });
 
 }
@@ -636,7 +642,7 @@ function getAnswer(taskId, token, schoolId) {
     }
 
   }).catch(function (error) {
-    console.error(error);
+    console.error("10");
   });
 }
 
@@ -658,6 +664,9 @@ function getTaskAnswers(req, res) {
         res.send({ state: '0' });
       }
     })
+    .catch(function (error) {
+      res.send({ state: '0' });
+    });
 
 }
 
@@ -751,7 +760,6 @@ function getTaskPreAnswers(req, res) {
 
     })
     .catch(function (error) {
-      console.error(error);
       res.send({ state: '0' });
     });
 }
@@ -788,6 +796,9 @@ function getSubjectUse(req, res) {
         res.send({ state: '0' });
       }
     })
+    .catch(function (error) {
+      res.send({ state: '0' });
+    });
 }
 
 //---------------------------------获取使用过谁的二卷--------------------------------------
@@ -821,6 +832,9 @@ function getSubjectUseWho(req, res) {
         res.send({ state: '0' });
       }
     })
+    .catch(function (error) {
+      res.send({ state: '0' });
+    });
 }
 
 //---------------------------------用户身份更新--------------------------------------
@@ -864,6 +878,10 @@ function userIdentity(req, res) {
           res.send({ status: '有多个结果' });
         }
       })
+      .catch(function (error) {
+        console.error("12");
+        res.send({ status: '失败' });
+      });
   }
   else {
     res.send({ status: '密码错误' });

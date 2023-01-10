@@ -61,20 +61,6 @@ const users = temp.define('users', {
     }
 });
 
-// 查询所有用户
-users.findAll({
-    where: {
-        [Op.or]: [
-            { status: "active" },
-            { status: "pwerror" }
-        ]
-    }
-})
-    .then(people => {
-        for (let person of people) {
-            setTimeout(() => { getToken(person); }, Math.floor(Math.random() * (10000 - 10)) + 10)
-        }
-    })
 
 function getToken(person) {
 
@@ -89,23 +75,22 @@ function getToken(person) {
     })
         .then(function (response) {
             if (response.data.resultCode == 0) {
-                submitTemp(response.data.data.token, person);
+                submitTemp(response.data.data.token, person, 0);
             }
             else if (response.data.resultCode == -1) {
-                addRecord(person.tel, person.infoRaw.StuName, "密码错误");
                 pwerror(person.tel);
+                addRecord(person.tel, person.infoRaw.StuName, "密码错误");
             }
             else {
-                console.log(person, response)
-                getToken(person)
+                getToken(person);
             }
         })
         .catch(function (error) {
-            console.error(error);
+            addRecord(person.tel, person.infoRaw.StuName, "token获取错误");
         });
 
 }
-function submitTemp(token, person) {
+function submitTemp(token, person, times) {
 
     let randomTemp = Math.round(Math.random() * (367 - 360) + 360) / 10;
 
@@ -138,26 +123,24 @@ function submitTemp(token, person) {
             userToken: token
         }
     }).then(function (response) {
-        let status = '';
         if (response.data.msg == '登录信息异常') {
-            setTimeout(() => {
-                submitTemp(token, person)
-            }, 1000);
-            console.log(token, person)
+            if (times > 2) {
+                addRecord(person.tel, person.infoRaw.StuName, "登录信息异常并多次尝试未果");
+            }
+            else {
+                setTimeout(() => {submitTemp(token, person, times++)},1000);
+            }
         }
         else if (response.data.state == 'ok') {
-            status = randomTemp + '°C';
+            let status = randomTemp + '°C';
             addRecord(person.tel, person.infoRaw.StuName, status)
         }
         else {
-            status = response.data.msg;
-            addRecord(person.tel, person.infoRaw.StuName, status)
+            addRecord(person.tel, person.infoRaw.StuName, response.data.msg)
         }
 
-
-
     }).catch(function (error) {
-        console.error(error);
+        addRecord(person.tel, person.infoRaw.StuName, "体温提交失败");
     });
 
 }
@@ -170,8 +153,21 @@ function addRecord(tel, name, status) {
             name: name,
             status: status,
         })
-        .catch(err => console.log(err))
-
+        .then(res => {
+            count++;
+            if(count >= total) {
+                console.log('打卡成功')
+                cb(null, '打卡成功');
+            }
+        })
+        .catch(err => {
+            count++;
+            console.log('[添加记录失败]', tel, name, status)
+            if(count >= total) {
+                console.log('打卡成功')
+                cb(null, '打卡成功');
+            }
+        })
 }
 
 function pwerror(tel) {
@@ -181,4 +177,34 @@ function pwerror(tel) {
         }
     });
 
+}
+
+var total = 0;
+var count = 0;
+var cb = function(){};
+
+exports.handler = function (event, context, callback) {
+    // 查询所有用户
+    users.findAll({
+        where: {
+            [Op.or]: [
+                { status: "active" },
+                { status: "pwerror" }
+            ]
+        }
+    })
+        .then(people => {
+            total = people.length;
+            cb = callback;
+
+            console.log('[总人数]', total)
+
+            for (let person of people) {
+                setTimeout(() => {getToken(person)}, Math.floor(Math.random() * (10000 - 10)) + 10);
+            }
+
+        })
+        .catch(err => {
+            callback(error, '打卡失败');
+        })
 }

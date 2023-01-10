@@ -105,8 +105,8 @@ const users = xiaoxin.define('users', {
     token: DataTypes.STRING(255),
     name: DataTypes.STRING(10),
     school: DataTypes.STRING(64),
-    schoolId: DataTypes.INTEGER(5),
-    userRole: DataTypes.INTEGER(3),
+    schoolId: DataTypes.INTEGER,
+    userRole: DataTypes.INTEGER,
     wxNickname: DataTypes.STRING(255),
     grade: DataTypes.STRING(10),
     class: DataTypes.STRING(10),
@@ -296,7 +296,7 @@ bot.on('GroupMessage', async data => {
 
             users.findOne({
                 where: {
-                    qq: data.sender.id
+                    qq: String(data.sender.id)
                 }
             })
                 .then(async res => {
@@ -334,7 +334,13 @@ bot.on('GroupMessage', async data => {
                                     });
                                 }
                             })
+                            .catch(err => {
+                                console.log(err);
+                            })
                     }
+                })
+                .catch(err => {
+                    console.log(err);
                 })
         }
     }
@@ -514,19 +520,26 @@ bot.on('GroupMessage', async data => {
         if (data.messageChain[1].text == '/帮助' || data.messageChain[1].text == '/help') {
 
             let msg = `[Help]
-【小鑫助手】
+【小鑫第三方客户端】
+当前地址 https://task.paraject.com
+>地址经常换,打不开请看群公告和精华消息
+>限制次数是为了限制助手用户总提交数(控制在每天2000以内),希望大家理解
+使用方法：
 1.查看验证码
-浏览器打开 https://homework.paraject.com/ ,登录您的账号,复制弹窗中的验证码(已自动帮您加上了命令前缀&)
+浏览器打开网站,登录您的账号,复制弹窗中的验证码
 2.激活小鑫助手
-发送验证码到此群
-2.使用小鑫助手
+群里回复&+验证码(例如&QYLU7M2F)，不要@机器人
+3.使用小鑫助手
 刷新登录即可使用
 
 【体温助手】
+地址 https://temp.geekpara.com
+>发烧期间请自行暂停体温打卡
+使用方法：
 1.获取验证码
 在此群发送 "/验证码" 或 "/code" 即可获取验证码
 2.激活体温助手
-浏览器打开 https://temp.geekpara.com/ ,输入您的验证码,按照提示完成激活。`
+浏览器打开网站,输入您的验证码,按照提示完成激活。`
 
             bot.sendMessage({
                 group: data.sender.group.id,
@@ -573,19 +586,13 @@ bot.on('GroupMessage', async data => {
     if (data.messageChain[1].type == 'Plain') {
         if (data.messageChain[1].text == '/notice' || data.messageChain[1].text == '/通知') {
 
-            let msg = `2022-12-14[最新]
-有人问为什么现在有了很多限制呢？验证码，机器人，绑定qq...
-其实我们也在想这个问题，如果放任不管，那么可能使用人数会指数级增长，相应的，带来的是巨大的安全风险。稍有不慎，项目就会永久关闭。但如果加以限制，我们就能以损失一部分用户的代价为现有用户提供更稳定优质的服务，岂不是更好？无论是禁止代人验证还是绑定QQ，都是旨在为在群的各位提供更加安全可靠的服务。因此我们决定于2022-12-15 00:00封群，除特殊原因外不再同意新用户的申请。最希望看到的，是大家能够理解我们的决定，也希望大家能够继续支持我们。
--------------------------
-2022-12-14[小鑫助手]
-限制次数的目的是限制使用助手总提交数（尽量控制在每天2000以内），事实上，每天实际使用人数已经达到了1500，希望大家理解。但如果您为项目的发展做了一定的贡献，例如担任群管理/提出建设性建议或是资金上的支持，欢迎您成为内部成员或是支持者，当然了，我们会给您优先使用权。因为人数众多，发展以来未能统计完全，所以如果您认为自己符合要求，请私聊@paraject 。
--------------------------
-2022-12-10[体温助手]
-各位业主朋友们，如果您不幸感染奥密克戎(新冠病毒新变异株) ，请您在患病期间自行暂停您的体温打卡服务。具体操作为登录体温助手网站(https://temp.geekpara.com),在首页查询框输入您的名字或手机号，然后点击暂停服务按钮，核酸阴性之后，您同样可以自行开启。我们对您的遭遇感到遗憾，祝您早日恢复。
--------------------------
-[其他]
-遵守 MIT 协议(https://opensource.org/licenses/MIT) ,开发者不担任何责任以及连带责任。
-paraject社团非个人实体且无代表实体,贡献者与paraject社团除开源贡献外无任何利益是非关系。`
+            let msg = `验证码2023-01-10[最新]
+1.我们遵守MIT协议(https://opensource.org/licenses/MIT) ,开发者不担任何责任以及连带责任
+2.paraject社团非个人实体且无代表实体,贡献者与社团除开源贡献外无任何利益是非关系
+3.若您退群,则认为您已放弃使用的权利,将立即停止您的使用权限
+4.迄今已发生三起危害项目发展的意外(人为)事故,烦请各位小伙伴谨慎宣传,请勿在使用过程中截图,请珍惜! 
+5.推荐给别人请私聊单发,请勿发朋友圈/空间/群聊,申请加群时回答鑫考云/小鑫账号或手机号,机器人自动审核。305432291此群当前可用
+6.遇到问题请看公告和精华消息,勿聊政治敏感内容`
 
             bot.sendMessage({
                 group: data.sender.group.id,
