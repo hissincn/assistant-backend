@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ESNEXT",
+    "module": "commonjs",
+    "pretty": true,
+    "sourceMap": false,
+    "outDir": "dist",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+  },
+  "include": ["**/*.ts", "server.ts", ],
+  "exclude": [
+    //"node_modules",
+    //"models/*.ts",
+    "dist"
+  ],
+}

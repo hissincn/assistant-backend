@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>用户认证</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <h1>用户认证</h1>
+        <input type="text" v-model="user" placeholder="账号/手机号">
+        <input type="text" v-model="password" placeholder="密码">
+        <button @click="donate">更新</button>
+        <p>{{result}}</p>
+    </div>
+
+    <div id="process">
+        <h1>用户列表</h1>
+        <table border="1">
+            <tr>
+                <th>tel</th>
+                <th>OrderNumber</th>
+                <th>updatedAt</th>
+                <th></th>
+                <th></th>
+            </tr>
+            <tr v-for="item in list">
+                <td>{{item.tel}}</td>
+                <td>{{item.orderNumber}}</td>
+                <td>{{item.updatedAt}}</td>
+                <td><button @click="this.agree(item.tel)">Agree</button></td>
+                <td><button @click="this.refuse(item.tel)">Refuse</button></td>
+            </tr>
+        </table>
+    </div>
+</body>
+
+</html>
+
+<script>
+    const { createApp } = Vue
+
+    createApp({
+        data() {
+            return {
+                user: '',
+                password: '',
+                result: ''
+            }
+        },
+        methods: {
+            donate() {
+                fetch('https://webapi-xiaoxin-chbzblrjxb.cn-shanghai.fcapp.run/userIdentity', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user: this.user,
+                        password: this.password
+                    })
+                })
+                    .then((response) => response.json())
+                    .then((responseJson) => {
+                        this.result = responseJson.status
+                    })
+                    .catch((error) => {
+                        console.error(error)
+                    })
+            }
+        }
+    }).mount('#app')
+
+    createApp({
+        data() {
+            return {
+                list: []
+            }
+        },
+        methods: {
+            agree(tel) {
+                fetch('https://webapi-xiaoxin-chbzblrjxb.cn-shanghai.fcapp.run/donatorApplyPassed', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ tel: tel })
+                })
+                    .then(response => response.json())
+                    .then(response => console.log(response))
+                    .catch(err => console.error(err));
+
+            },
+            refuse(tel) {
+                fetch('https://webapi-xiaoxin-chbzblrjxb.cn-shanghai.fcapp.run/donatorApplySuspend', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ tel: tel })
+                })
+                    .then(response => response.json())
+                    .then(response => console.log(response))
+                    .catch(err => console.error(err));
+
+            }
+        },
+        mounted() {
+            fetch('https://webapi-xiaoxin-chbzblrjxb.cn-shanghai.fcapp.run/donatorApplyList', {
+                method: 'POST',
+                headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({})
+            })
+                .then(response => response.json())
+                .then(response => this.list = response)
+                .catch(err => console.error(err));
+        }
+    }).mount('#process')
+</script>
+
+<style scoped>
+    h1,
+    h2 {
+        font-weight: normal;
+    }
+</style>

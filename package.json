@@ -1,15 +1,36 @@
 {
+  "name": "assistant-backend",
+  "version": "0.0.0",
+  "description": "",
+  "main": "server.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "cls&nodemon --config nodemon.json server.ts",
+    "post": "npm run build && ts-node build/post.ts",
+    "build": "npx esbuild server.ts --platform=node --external:pg-native --bundle --minify --outfile=dist/index.js"
+  },
   "dependencies": {
+    "@alicloud/fc-open20210406": "2.0.13",
+    "@alicloud/openapi-client": "^0.4.7",
+    "@alicloud/tea-util": "^1.4.7",
+    "ali-oss": "^6.19.0",
     "axios": "^1.2.0",
     "body-parser": "^1.20.1",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "express-ip": "^1.0.4",
     "mirai-js": "^2.8.9",
     "mysql2": "^2.3.3",
+    "nodemon": "^3.0.0",
     "pg": "^8.8.0",
     "pg-hstore": "^2.3.4",
     "qs": "^6.11.0",
-    "sequelize": "^6.25.6"
+    "sequelize": "^6.25.6",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "babel-cli": "^6.26.0",
+    "esbuild": "^0.19.4",
+    "typescript": "^5.2.2"
   }
 }
