@@ -1095,6 +1095,10 @@ apis.post("/uploadScreenshot", function (req, res) {
   uploadScreenshot(req, res);
 });
 
+apis.post("/deleteTask", function (req, res) {
+  deleteTask(req, res);
+});
+
 //监听端口
 apis.listen(config.xiaoxin.apiPort, () => {
   console.log(`Xiaoxin Apis listening on port ${config.xiaoxin.apiPort}`);

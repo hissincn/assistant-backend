@@ -24,14 +24,14 @@ if (config.xiaoxin.dialect == 'postgres') {
 }
 
 //定义answers表模型
-const answers = xiaoxin.define('answers', {
+const answers = xiaoxin.define("answers", {
     schoolId: {
         type: DataTypes.INTEGER,
-        primaryKey: true
+        primaryKey: true,
     },
     taskId: {
         type: DataTypes.INTEGER,
-        primaryKey: true
+        primaryKey: true,
     },
     taskName: DataTypes.STRING(255),
     answer: DataTypes.JSON,
@@ -45,7 +45,7 @@ function getAnswer(taskId, token) {
         data: { taskId, token }
     }).then(function (res) {
 
-        if (res.data && res.data.data.length>0 &&  res.data.state == 'ok') {
+        if (res.data && res.data.data?.length > 0 && res.data.state == 'ok') {
 
             let taskData = [];
 
@@ -112,6 +112,6 @@ function getAnswer(taskId, token) {
 //getAnswer(313, 'pc_340d5a3ac93a41bfb05513fb49e7fc1c')
 
 
-for(let i=1;i<=999;i++){
-    getAnswer(i, 'pc_52c1ccf27d134fb5bb0552c93e3be5ba')
+for (let i = 1; i <= 999; i++) {
+    getAnswer(i, 'pc_16a5a127c6904396a206dcbab2f4bceb')
 }
